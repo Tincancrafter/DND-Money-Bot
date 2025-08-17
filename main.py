@@ -14,7 +14,7 @@ est = pytz.timezone('America/New_York')
 trigger_time = time(hour=17, minute=40)
 
 load_dotenv()
-token = os.getenv('DISCORD_TOKEN')
+token = os.getenv('BOT_TOKEN')
 
 handler = logging.FileHandler(filename='discord.log',encoding='utf-8',mode='w')
 
