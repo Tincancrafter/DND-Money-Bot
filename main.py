@@ -14,7 +14,34 @@ est = pytz.timezone('America/New_York')
 trigger_time = time(hour=17, minute=40)
 
 load_dotenv()
-token = os.getenv('BOT_TOKEN')
+token1 = os.getenv('DISCORD_TOKEN')
+
+token2 = os.environ.get('DISCORD_TOKEN')
+
+print(f"Method 1 (load_dotenv): {token1 is not None}")
+print(f"Method 1 length: {len(token1) if token1 else 0}")
+
+print(f"Method 2 (direct): {token2 is not None}")
+print(f"Method 2 length: {len(token2) if token2 else 0}")
+
+print(f"Tokens match: {token1 == token2}")
+
+# Print all environment variables that contain 'DISCORD' or 'TOKEN'
+print("Environment variables containing 'DISCORD' or 'TOKEN':")
+for key, value in os.environ.items():
+    if 'DISCORD' in key.upper() or 'TOKEN' in key.upper():
+        print(f"  {key}: {value[:10] if value else 'None'}...")
+
+# Use whichever token exists
+token = token1 or token2
+
+if not token:
+    print("ERROR: No token found in environment variables!")
+    exit(1)
+else:
+    print(f"Using token of length: {len(token)}")
+
+
 
 handler = logging.FileHandler(filename='discord.log',encoding='utf-8',mode='w')
 
