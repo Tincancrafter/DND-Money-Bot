@@ -13,17 +13,16 @@ print(f"Discord.py version: {discord.__version__}")
 est = pytz.timezone('America/New_York')
 trigger_time = time(hour=17, minute=40)
 
+# Debug token loading
+print("=== DEBUGGING TOKEN LOADING ===")
 load_dotenv()
 token1 = os.getenv('DISCORD_TOKEN')
-
 token2 = os.environ.get('DISCORD_TOKEN')
 
 print(f"Method 1 (load_dotenv): {token1 is not None}")
 print(f"Method 1 length: {len(token1) if token1 else 0}")
-
 print(f"Method 2 (direct): {token2 is not None}")
 print(f"Method 2 length: {len(token2) if token2 else 0}")
-
 print(f"Tokens match: {token1 == token2}")
 
 # Print all environment variables that contain 'DISCORD' or 'TOKEN'
@@ -35,13 +34,20 @@ for key, value in os.environ.items():
 # Use whichever token exists
 token = token1 or token2
 
+print(f"Final token: {token is not None}")
+print(f"Final token type: {type(token)}")
+print(f"Final token length: {len(token) if token else 0}")
+
 if not token:
     print("ERROR: No token found in environment variables!")
+    print("Available environment variables:")
+    for key in sorted(os.environ.keys()):
+        print(f"  {key}")
     exit(1)
 else:
-    print(f"Using token of length: {len(token)}")
+    print(f"✅ Using token of length: {len(token)}")
 
-
+print("=== END DEBUG ===")
 
 handler = logging.FileHandler(filename='discord.log',encoding='utf-8',mode='w')
 
@@ -374,5 +380,15 @@ async def test_update(interaction: discord.Interaction):
             await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
     else:
         await interaction.response.send_message("❌ You need administrator permissions to use this command.", ephemeral=True)
+
+# Final check before running bot
+print("=== FINAL TOKEN CHECK ===")
+print(f"About to run bot with token: {token is not None}")
+print(f"Token type: {type(token)}")
+if token:
+    print(f"Token length: {len(token)}")
+    print(f"Token starts with: {token[:5]}...")
+else:
+    print("❌ TOKEN IS NONE - BOT WILL FAIL!")
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
