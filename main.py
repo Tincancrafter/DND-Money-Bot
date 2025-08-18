@@ -194,7 +194,7 @@ async def dailyUpdate():
     now = datetime.now()
     current_date = now.date()
     
-    if now.hour == 0 and now.minute == 0 and current_date != last_update_date:
+    if now.hour == 4 and now.minute == 0 and current_date != last_update_date:
         print(f"Daily update triggered at {datetime.now(est)}")
         last_update_date = current_date
         channel = bot.get_channel(DAILY_UPDATE_CHANNEL_ID)  # Still uses original channel
