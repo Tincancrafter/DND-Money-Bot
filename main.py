@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+import sys
+import io
 import csv
 import random
 import discord
@@ -9,45 +12,27 @@ from datetime import datetime, time
 from dotenv import load_dotenv
 import os
 
-print(f"Discord.py version: {discord.__version__}")
+# Fix encoding issues
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+print("Discord.py version:", discord.__version__)
 est = pytz.timezone('America/New_York')
 trigger_time = time(hour=17, minute=40)
 
-# Debug token loading
-print("=== DEBUGGING TOKEN LOADING ===")
 load_dotenv()
-token1 = os.getenv('DISCORD_TOKEN')
-token2 = os.environ.get('DISCORD_TOKEN')
+token = os.getenv('DISCORD_TOKEN')
 
-print(f"Method 1 (load_dotenv): {token1 is not None}")
-print(f"Method 1 length: {len(token1) if token1 else 0}")
-print(f"Method 2 (direct): {token2 is not None}")
-print(f"Method 2 length: {len(token2) if token2 else 0}")
-print(f"Tokens match: {token1 == token2}")
-
-# Print all environment variables that contain 'DISCORD' or 'TOKEN'
-print("Environment variables containing 'DISCORD' or 'TOKEN':")
-for key, value in os.environ.items():
-    if 'DISCORD' in key.upper() or 'TOKEN' in key.upper():
-        print(f"  {key}: {value[:10] if value else 'None'}...")
-
-# Use whichever token exists
-token = token1 or token2
-
-print(f"Final token: {token is not None}")
-print(f"Final token type: {type(token)}")
-print(f"Final token length: {len(token) if token else 0}")
-
+# Debug: Check if token is loaded
 if not token:
-    print("ERROR: No token found in environment variables!")
-    print("Available environment variables:")
-    for key in sorted(os.environ.keys()):
-        print(f"  {key}")
+    print("❌ ERROR: DISCORD_TOKEN not found in environment variables!")
+    print("Make sure you have a .env file with DISCORD_TOKEN=your_token_here")
     exit(1)
 else:
-    print(f"✅ Using token of length: {len(token)}")
-
-print("=== END DEBUG ===")
+    print("✅ Token loaded successfully")
+    print(f"Token length: {len(token)} characters")
 
 handler = logging.FileHandler(filename='discord.log',encoding='utf-8',mode='w')
 
@@ -65,49 +50,64 @@ class RestrictedBot(commands.Bot):
 
 bot = RestrictedBot()
 
+# Custom check function for specific role only
+AUTHORIZED_ROLE_ID = 1177986158324613151
+
+def authorized_role_only():
+    def predicate(interaction: discord.Interaction) -> bool:
+        # Check if user has the specific role
+        if interaction.guild is None:
+            return False
+        user_roles = [role.id for role in interaction.user.roles]
+        return AUTHORIZED_ROLE_ID in user_roles
+    return app_commands.check(predicate)
+
 #############################################################################
 def initalInvestment(investment):
-  data=[["Total Money invested", "Party investment","Favorability"],
-    [investment*2, investment,.001]]
-  with open("data.csv", mode="w", newline="") as file:
-    write=csv.writer(file)
-    write.writerows(data)
+    data=[["Total Money invested", "Party investment","Favorability"],
+        [investment*2, investment,.001]]
+    with open("data.csv", mode="w", newline="") as file:
+        write=csv.writer(file)
+        write.writerows(data)
+
 #############################################################################
 def resetInvestment():
-  investment=0
-  data=[["Total Money invested", "Party investment","Favorability"],
-    [investment*2, investment,.001]]
-  with open("data.csv", mode="w", newline="") as file:
-    write=csv.writer(file)
-    write.writerows(data)
+    investment=0
+    data=[["Total Money invested", "Party investment","Favorability"],
+        [investment*2, investment,.001]]
+    with open("data.csv", mode="w", newline="") as file:
+        write=csv.writer(file)
+        write.writerows(data)
+
 #############################################################################
 def rollDay():
-  change = 1
-  totalInvestment = float(companyValue())
-  favorability = float(Favorability())
-  partyInvestment = float(partyValue())
-  result = random.randrange(1,7,1)
-  match result:
-    case 1:
-      change = .98
-    case 2:
-      change = .99
-    case 3:
-      change = .995
-    case 4:
-      change = 1.005
-    case 5:
-      change = 1.01
-    case 6:
-      change = 1.02
-  change = change + favorability 
-  totalInvestment = round(totalInvestment * change,2)
-  partyInvestment = round(partyInvestment * change,2)
-  data = [["Total Money invested", "Party investment","Favorability"],
-    [totalInvestment, partyInvestment,favorability]]
-  with open("data.csv", mode="w", newline="") as file:
-    write = csv.writer(file)
-    write.writerows(data)
+    change = 1
+    totalInvestment = float(companyValue())
+    favorability = float(Favorability())
+    partyInvestment = float(partyValue())
+    result = random.randrange(1,7,1)
+    match result:
+        case 1:
+            change = .98
+        case 2:
+            change = .99
+        case 3:
+            change = .995
+        case 4:
+            change = 1.005
+        case 5:
+            change = 1.01
+        case 6:
+            change = 1.02
+    change = change + favorability 
+    totalInvestment = round(totalInvestment * change,2)
+    partyInvestment = round(partyInvestment * change,2)
+    data = [["Total Money invested", "Party investment","Favorability"],
+        [totalInvestment, partyInvestment,favorability]]
+    with open("data.csv", mode="w", newline="") as file:
+        write = csv.writer(file)
+        write.writerows(data)
+
 #############################################################################
 def companyValue():
     with open("data.csv", mode="r") as file:
@@ -115,6 +115,7 @@ def companyValue():
         for row in reader:
             totalInvestment = float(row["Total Money invested"])
     return(round(totalInvestment,2))
+
 #############################################################################
 def partyValue():
     with open("data.csv", mode="r") as file:
@@ -122,6 +123,7 @@ def partyValue():
         for row in reader:
             partyInvestment = float(row["Party investment"])
     return(round(partyInvestment,2))
+
 #############################################################################
 def Favorability():
     with open("data.csv", mode="r") as file:
@@ -129,6 +131,7 @@ def Favorability():
         for row in reader:
             Favorability = float(row["Favorability"])
     return((Favorability))
+
 #############################################################################
 def changeValue(type,value):
     totalInvestment = companyValue()
@@ -144,10 +147,11 @@ def changeValue(type,value):
         case _:
             raise ValueError(f"Invalid parameter '{type}'. Use 'Total', 'Party', or 'Favor'")
     data = [["Total Money invested", "Party investment", "Favorability"],
-    [totalInvestment, partyInvestment, favorability]]
+        [totalInvestment, partyInvestment, favorability]]
     with open("data.csv", mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerows(data)
+
 #############################################################################
 def payRoll(money):
     string = "You have earned "
@@ -260,6 +264,12 @@ async def on_ready():
             # Sync commands to the guild
             synced = await bot.tree.sync(guild=target_guild)
             print(f"✅ Synced {len(synced)} command(s) to guild: {target_guild.name}")
+            
+            # List all synced commands for debugging
+            print("📋 Synced commands:")
+            for cmd in synced:
+                print(f"  - /{cmd.name}: {cmd.description}")
+                
         except Exception as e:
             print(f"❌ Failed to sync commands: {e}")
             # Fallback: try global sync
@@ -273,6 +283,7 @@ async def on_ready():
 
 @bot.tree.command(name="firstinvestment", description="Set the initial investment amount")
 @app_commands.describe(amount="The initial investment amount")
+@authorized_role_only()
 async def firstInvestment(interaction: discord.Interaction, amount: float):
     try:
         await interaction.response.send_message(f"You set the initial investment to {amount}", ephemeral=True)
@@ -280,11 +291,18 @@ async def firstInvestment(interaction: discord.Interaction, amount: float):
     except Exception as e:
         await interaction.response.send_message("Please send a valid number!", ephemeral=True)
 
+# INFO command - accessible to everyone (no role restriction)
 @bot.tree.command(name="info", description="Get current investment information")
 async def info(interaction: discord.Interaction):
     await interaction.response.send_message(f"Total investment: {companyValue()}, Party investment: {partyValue()}, Favorability: {Favorability()}", ephemeral=True)
 
+# DEBUG command - accessible to everyone to test if commands are working
+@bot.tree.command(name="ping", description="Test if the bot is responding")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message("🏓 Pong! Bot is working!", ephemeral=True)
+
 @bot.tree.command(name="reset", description="Reset all investments")
+@authorized_role_only()
 async def reset(interaction: discord.Interaction):
     resetInvestment()
     await interaction.response.send_message("Investment has been reset.", ephemeral=True)
@@ -299,6 +317,7 @@ async def reset(interaction: discord.Interaction):
     app_commands.Choice(name="Party", value="Party"),
     app_commands.Choice(name="Favor", value="Favor")
 ])
+@authorized_role_only()
 async def change(interaction: discord.Interaction, type: app_commands.Choice[str], value: float):
     try:
         changeValue(type.value, value)
@@ -307,88 +326,137 @@ async def change(interaction: discord.Interaction, type: app_commands.Choice[str
         await interaction.response.send_message("There was an error processing this request.", ephemeral=True)
 
 @bot.tree.command(name="payroll", description="Shows your payroll (1% of company's value)")
+@authorized_role_only()
 async def payroll(interaction: discord.Interaction):
     company_val = companyValue()
     payroll_message = payRoll(company_val)
     await interaction.response.send_message(f"{payroll_message} (1% of company value: ${company_val:,.2f})", ephemeral=True)
 
-@bot.tree.command(name="sync", description="Manually sync commands (admin only)")
+@bot.tree.command(name="sync", description="Manually sync commands (authorized role only)")
+@authorized_role_only()
 async def sync_commands(interaction: discord.Interaction):
-    if interaction.user.guild_permissions.administrator:
-        try:
-            synced = await bot.tree.sync(guild=interaction.guild)
-            await interaction.response.send_message(f"✅ Synced {len(synced)} commands!", ephemeral=True)
-        except Exception as e:
-            await interaction.response.send_message(f"❌ Failed to sync: {e}", ephemeral=True)
-    else:
-        await interaction.response.send_message("❌ You need administrator permissions to use this command.", ephemeral=True)
+    try:
+        synced = await bot.tree.sync(guild=interaction.guild)
+        await interaction.response.send_message(f"✅ Synced {len(synced)} commands!", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Failed to sync: {e}", ephemeral=True)
 
-@bot.tree.command(name="testupdate", description="Manually trigger daily update (admin only)")
+@bot.tree.command(name="testupdate", description="Manually trigger daily update (authorized role only)")
+@authorized_role_only()
 async def test_update(interaction: discord.Interaction):
-    if interaction.user.guild_permissions.administrator:
-        try:
-            await interaction.response.defer(ephemeral=True)
+    try:
+        await interaction.response.defer(ephemeral=True)
+        
+        print(f"🧪 TEST UPDATE called by {interaction.user.name}")
+        print(f"🔍 Searching for channel ID: {DAILY_UPDATE_CHANNEL_ID}")
+        
+        channel = bot.get_channel(DAILY_UPDATE_CHANNEL_ID)
+        if channel:
+            print(f"✅ Found channel: '{channel.name}' in guild '{channel.guild.name}'")
             
-            print(f"🧪 TEST UPDATE called by {interaction.user.name}")
-            print(f"🔍 Searching for channel ID: {DAILY_UPDATE_CHANNEL_ID}")
+            # Check permissions
+            permissions = channel.permissions_for(channel.guild.me)
+            print(f"🔐 Bot permissions in #{channel.name}:")
+            print(f"   - Send Messages: {permissions.send_messages}")
+            print(f"   - View Channel: {permissions.view_channel}")
             
-            channel = bot.get_channel(DAILY_UPDATE_CHANNEL_ID)
-            if channel:
-                print(f"✅ Found channel: '{channel.name}' in guild '{channel.guild.name}'")
-                
-                # Check permissions
-                permissions = channel.permissions_for(channel.guild.me)
-                print(f"🔐 Bot permissions in #{channel.name}:")
-                print(f"   - Send Messages: {permissions.send_messages}")
-                print(f"   - View Channel: {permissions.view_channel}")
-                
-                if not permissions.send_messages:
-                    await interaction.followup.send(f"❌ Bot doesn't have Send Messages permission in {channel.mention}", ephemeral=True)
-                    return
-                
-                print(f"🎲 Running rollDay()...")
-                rollDay()
-                print(f"✅ rollDay() completed")
-                
-                # Get values
-                total_val = companyValue()
-                party_val = partyValue()
-                print(f"📊 New values - Total: {total_val}, Party: {party_val}")
-                
-                message = f"🧪 TEST Daily update! New values: Total: {total_val}, Party: {party_val}."
-                print(f"📤 Sending message: '{message}'")
-                
-                sent_message = await channel.send(message)  # This is NOT ephemeral - public message
-                print(f"✅ Test message sent successfully! Message ID: {sent_message.id}")
-                
-                await interaction.followup.send(f"✅ Test update sent to {channel.mention}\nMessage: {message}", ephemeral=True)
-            else:
-                print(f"❌ Channel {DAILY_UPDATE_CHANNEL_ID} not found!")
-                
-                # List available channels for debugging
-                debug_info = "Available channels:\n"
-                for guild in bot.guilds:
-                    debug_info += f"**{guild.name}:**\n"
-                    for ch in guild.text_channels[:10]:  # Limit to 10 to avoid message length issues
-                        debug_info += f"  #{ch.name} (ID: {ch.id})\n"
-                
-                await interaction.followup.send(f"❌ Could not find channel with ID {DAILY_UPDATE_CHANNEL_ID}\n\n{debug_info}", ephemeral=True)
-        except Exception as e:
-            print(f"❌ Test update error: {e}")
-            import traceback
-            print(f"❌ Full traceback: {traceback.format_exc()}")
-            await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
-    else:
-        await interaction.response.send_message("❌ You need administrator permissions to use this command.", ephemeral=True)
+            if not permissions.send_messages:
+                await interaction.followup.send(f"❌ Bot doesn't have Send Messages permission in {channel.mention}", ephemeral=True)
+                return
+            
+            print(f"🎲 Running rollDay()...")
+            rollDay()
+            print(f"✅ rollDay() completed")
+            
+            # Get values
+            total_val = companyValue()
+            party_val = partyValue()
+            print(f"📊 New values - Total: {total_val}, Party: {party_val}")
+            
+            message = f"🧪 TEST Daily update! New values: Total: {total_val}, Party: {party_val}."
+            print(f"📤 Sending message: '{message}'")
+            
+            sent_message = await channel.send(message)  # This is NOT ephemeral - public message
+            print(f"✅ Test message sent successfully! Message ID: {sent_message.id}")
+            
+            await interaction.followup.send(f"✅ Test update sent to {channel.mention}\nMessage: {message}", ephemeral=True)
+        else:
+            print(f"❌ Channel {DAILY_UPDATE_CHANNEL_ID} not found!")
+            
+            # List available channels for debugging
+            debug_info = "Available channels:\n"
+            for guild in bot.guilds:
+                debug_info += f"**{guild.name}:**\n"
+                for ch in guild.text_channels[:10]:  # Limit to 10 to avoid message length issues
+                    debug_info += f"  #{ch.name} (ID: {ch.id})\n"
+            
+            await interaction.followup.send(f"❌ Could not find channel with ID {DAILY_UPDATE_CHANNEL_ID}\n\n{debug_info}", ephemeral=True)
+    except Exception as e:
+        print(f"❌ Test update error: {e}")
+        import traceback
+        print(f"❌ Full traceback: {traceback.format_exc()}")
+        await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
 
-# Final check before running bot
-print("=== FINAL TOKEN CHECK ===")
-print(f"About to run bot with token: {token is not None}")
-print(f"Token type: {type(token)}")
-if token:
-    print(f"Token length: {len(token)}")
-    print(f"Token starts with: {token[:5]}...")
-else:
-    print("❌ TOKEN IS NONE - BOT WILL FAIL!")
+# NEW COMMAND: Manual roll for authorized role only
+@bot.tree.command(name="manualroll", description="Manually roll the daily investment changes (authorized role only)")
+@authorized_role_only()
+async def manual_roll(interaction: discord.Interaction):
+    try:
+        await interaction.response.defer(ephemeral=True)
+        
+        print(f"🎲 MANUAL ROLL called by {interaction.user.name}")
+        
+        # Store old values for comparison
+        old_total = companyValue()
+        old_party = partyValue()
+        old_favor = Favorability()
+        
+        # Perform the roll
+        rollDay()
+        
+        # Get new values
+        new_total = companyValue()
+        new_party = partyValue()
+        new_favor = Favorability()
+        
+        # Calculate changes
+        total_change = new_total - old_total
+        party_change = new_party - old_party
+        total_percent = ((new_total / old_total) - 1) * 100 if old_total != 0 else 0
+        party_percent = ((new_party / old_party) - 1) * 100 if old_party != 0 else 0
+        
+        # Format the response
+        response = f"🎲 **Manual Roll Complete!**\n\n"
+        response += f"**Total Investment:**\n"
+        response += f"  Old: ${old_total:,.2f}\n"
+        response += f"  New: ${new_total:,.2f}\n"
+        response += f"  Change: ${total_change:+,.2f} ({total_percent:+.2f}%)\n\n"
+        response += f"**Party Investment:**\n"
+        response += f"  Old: ${old_party:,.2f}\n"
+        response += f"  New: ${new_party:,.2f}\n"
+        response += f"  Change: ${party_change:+,.2f} ({party_percent:+.2f}%)\n\n"
+        response += f"**Favorability:** {new_favor}"
+        
+        print(f"✅ Manual roll completed - Total: {old_total} -> {new_total}, Party: {old_party} -> {new_party}")
+        
+        await interaction.followup.send(response, ephemeral=True)
+        
+    except Exception as e:
+        print(f"❌ Manual roll error: {e}")
+        import traceback
+        print(f"❌ Full traceback: {traceback.format_exc()}")
+        await interaction.followup.send(f"❌ Error during manual roll: {e}", ephemeral=True)
+
+# Error handler for role-restricted commands
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.CheckFailure):
+        # This will catch role permission failures
+        await interaction.response.send_message("❌ You need the required role to use this command.", ephemeral=True)
+    else:
+        # Handle other errors
+        print(f"Command error: {error}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message("❌ An error occurred while processing the command.", ephemeral=True)
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
