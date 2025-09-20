@@ -257,6 +257,11 @@ async def on_ready():
     dailyUpdate.start()
     print("Daily update task started")
     
+    # Debug: Print all commands that are registered
+    print(f"🔍 Total commands registered: {len(bot.tree.get_commands())}")
+    for cmd in bot.tree.get_commands():
+        print(f"  Command: {cmd.name} - {cmd.description}")
+    
     # Debug: Print all guilds and channels the bot can see
     print(f"Bot is in {len(bot.guilds)} guild(s):")
     for guild in bot.guilds:
@@ -286,28 +291,28 @@ async def on_ready():
         target_guild = bot.guilds[0]
         print(f"Fallback: using first guild: {target_guild.name}")
     
+    print(f"🎯 Target guild for sync: {target_guild.name if target_guild else 'None'}")
+    
     if target_guild:
         try:
-            # Clear existing commands first
-            bot.tree.clear_commands(guild=target_guild)
-            
-            # Sync commands to the guild
+            # Don't clear commands, just sync
             synced = await bot.tree.sync(guild=target_guild)
             print(f"✅ Synced {len(synced)} command(s) to guild: {target_guild.name}")
             
             # List all synced commands for debugging
-            print("📋 Synced commands:")
-            for cmd in synced:
-                print(f"  - /{cmd.name}: {cmd.description}")
+            if len(synced) > 0:
+                print("📋 Synced commands:")
+                for cmd in synced:
+                    print(f"  - /{cmd.name}: {cmd.description}")
+            else:
+                print("❌ No commands were synced! Trying global sync...")
+                synced_global = await bot.tree.sync()
+                print(f"🌍 Global sync result: {len(synced_global)} commands")
                 
         except Exception as e:
             print(f"❌ Failed to sync commands: {e}")
-            # Fallback: try global sync
-            try:
-                synced = await bot.tree.sync()
-                print(f"✅ Fallback: Synced {len(synced)} command(s) globally")
-            except Exception as e2:
-                print(f"❌ Global sync also failed: {e2}")
+            import traceback
+            print(f"Full error: {traceback.format_exc()}")
     else:
         print("❌ No guilds found!")
 
@@ -321,10 +326,21 @@ async def firstInvestment(interaction: discord.Interaction, amount: float):
     except Exception as e:
         await interaction.response.send_message("Please send a valid number!", ephemeral=True)
 
+# Simple test command with no restrictions - this should always work
+@bot.tree.command(name="test", description="Simple test command")
+async def test_command(interaction: discord.Interaction):
+    await interaction.response.send_message("🔧 Test command works! Bot is responding.", ephemeral=True)
+
 # INFO command - accessible to everyone (no role restriction)
 @bot.tree.command(name="info", description="Get current investment information")
 async def info(interaction: discord.Interaction):
-    await interaction.response.send_message(f"Total investment: {companyValue()}, Party investment: {partyValue()}, Favorability: {Favorability()}", ephemeral=True)
+    try:
+        total = companyValue()
+        party = partyValue() 
+        favor = Favorability()
+        await interaction.response.send_message(f"Total investment: {total}, Party investment: {party}, Favorability: {favor}", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"Error getting info: {e}", ephemeral=True)
 
 # DEBUG command - accessible to everyone to test if commands are working
 @bot.tree.command(name="ping", description="Test if the bot is responding")
