@@ -110,27 +110,45 @@ def rollDay():
 
 #############################################################################
 def companyValue():
-    with open("data.csv", mode="r") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            totalInvestment = float(row["Total Money invested"])
-    return(round(totalInvestment,2))
+    try:
+        with open("data.csv", mode="r") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                totalInvestment = float(row["Total Money invested"])
+        return(round(totalInvestment,2))
+    except (FileNotFoundError, KeyError):
+        # If file doesn't exist or headers are wrong, create default file
+        print("⚠️ data.csv not found or invalid, creating default file...")
+        initalInvestment(100)  # Create with default investment of 100
+        return 100.0
 
 #############################################################################
 def partyValue():
-    with open("data.csv", mode="r") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            partyInvestment = float(row["Party investment"])
-    return(round(partyInvestment,2))
+    try:
+        with open("data.csv", mode="r") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                partyInvestment = float(row["Party investment"])
+        return(round(partyInvestment,2))
+    except (FileNotFoundError, KeyError):
+        # If file doesn't exist or headers are wrong, create default file
+        print("⚠️ data.csv not found or invalid, creating default file...")
+        initalInvestment(100)  # Create with default investment of 100
+        return 100.0
 
 #############################################################################
 def Favorability():
-    with open("data.csv", mode="r") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            Favorability = float(row["Favorability"])
-    return((Favorability))
+    try:
+        with open("data.csv", mode="r") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                Favorability = float(row["Favorability"])
+        return((Favorability))
+    except (FileNotFoundError, KeyError):
+        # If file doesn't exist or headers are wrong, create default file
+        print("⚠️ data.csv not found or invalid, creating default file...")
+        initalInvestment(100)  # Create with default investment of 100
+        return 0.001
 
 #############################################################################
 def changeValue(type,value):
@@ -227,6 +245,15 @@ async def globally_block_dms(interaction: discord.Interaction):
 @bot.event
 async def on_ready():
     print(f"Bot is now online")
+    
+    # Initialize data.csv if it doesn't exist
+    try:
+        companyValue()  # This will create the file if it doesn't exist
+        print("✅ Data file loaded successfully")
+    except Exception as e:
+        print(f"⚠️ Creating default data file: {e}")
+        initalInvestment(100)
+    
     dailyUpdate.start()
     print("Daily update task started")
     
@@ -261,6 +288,9 @@ async def on_ready():
     
     if target_guild:
         try:
+            # Clear existing commands first
+            bot.tree.clear_commands(guild=target_guild)
+            
             # Sync commands to the guild
             synced = await bot.tree.sync(guild=target_guild)
             print(f"✅ Synced {len(synced)} command(s) to guild: {target_guild.name}")
